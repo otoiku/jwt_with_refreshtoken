@@ -1,0 +1,62 @@
+package com.github.otoiku.jwt_with_refreshtoken.security;
+
+import com.github.otoiku.jwt_with_refreshtoken.service.JwtUserDetailsService;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.BeanIds;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig extends WebSecurityConfigurerAdapter {
+    private JwtUserDetailsService userDetailsService;
+
+    @Value("${jwt.accesstoken.secretkey}")
+    private String accessTokenSecret;
+
+    public SecurityConfig(JwtUserDetailsService userService) {
+        this.userDetailsService = userService;
+    }
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http
+                .headers().frameOptions().sameOrigin()
+                .and().csrf().disable();
+
+        http
+                .authorizeRequests()
+                .antMatchers("/api/refreshToken", "/h2-console/**").permitAll()
+                .anyRequest().authenticated();
+
+        http
+                .addFilter(new JwtAuthenticationFilter(authenticationManagerBean(), userDetailsService))
+                .addFilter(new JwtAuthorizationFilter(authenticationManagerBean(), accessTokenSecret))
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+    }
+
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        auth.userDetailsService(userDetailsService)
+                .passwordEncoder(passwordEncoder());
+    }
+
+    @Bean(name = BeanIds.AUTHENTICATION_MANAGER)
+    @Override
+    public AuthenticationManager authenticationManagerBean() throws Exception {
+        return super.authenticationManagerBean();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+}
