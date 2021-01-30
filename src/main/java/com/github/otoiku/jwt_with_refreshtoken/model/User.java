@@ -21,7 +21,7 @@ public class User {
     @Column(name = "password", length = 64, nullable = false)
     private String password;
 
-    @Column(name = "refreshtoken", length = 32)
+    @Column(name = "refreshtoken", length = 64)
     private String refreshToken;
 
     @Column(name = "refreshtoken_iat")
