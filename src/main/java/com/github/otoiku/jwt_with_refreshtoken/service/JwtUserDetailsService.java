@@ -9,10 +9,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +26,8 @@ import java.util.Date;
 @Service
 public class JwtUserDetailsService implements UserDetailsService {
     private final UserRepository userRepository;
+
+    private final PasswordEncoder passwordEncoder;
 
     @Value("${jwt.accesstoken.expirationtime}")
     private long accessTokenExpTime;
@@ -38,8 +42,9 @@ public class JwtUserDetailsService implements UserDetailsService {
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    public JwtUserDetailsService(UserRepository userRepository) {
+    public JwtUserDetailsService(UserRepository userRepository, @Lazy PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional(readOnly = true)
@@ -53,7 +58,7 @@ public class JwtUserDetailsService implements UserDetailsService {
     }
 
     @Transactional
-    public UserIssueToken issueToken(String username) {
+    public UserIssueToken issueToken(String username) throws UsernameNotFoundException {
         final String token = JWT.create()
                 .withSubject(username)
                 .withExpiresAt(Date.from(Instant.now().plus(accessTokenExpTime, ChronoUnit.SECONDS)))
@@ -75,13 +80,13 @@ public class JwtUserDetailsService implements UserDetailsService {
             return false;
         }
 
-        return StringUtils.isNotEmpty(user.getRefreshToken()) && user.getRefreshToken().equals(refreshToken);
+        return StringUtils.isNotEmpty(user.getRefreshToken()) && passwordEncoder.matches(refreshToken, user.getRefreshToken());
     }
 
     private String generateRefreshToken(String username) throws UsernameNotFoundException {
         final com.github.otoiku.jwt_with_refreshtoken.model.User user = findByUsername(username);
         final String token = RandomStringUtils.randomAlphanumeric(REFRESH_TOKEN_LENGTH);
-        user.setRefreshToken(token);
+        user.setRefreshToken(passwordEncoder.encode(token));
         user.setRefreshTokenIssuedAt(Instant.now());
         userRepository.save(user);
         return token;

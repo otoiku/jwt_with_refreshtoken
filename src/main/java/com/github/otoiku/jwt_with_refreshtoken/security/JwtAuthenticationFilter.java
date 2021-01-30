@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.otoiku.jwt_with_refreshtoken.dto.UserAuthentification;
 import com.github.otoiku.jwt_with_refreshtoken.dto.UserIssueToken;
 import com.github.otoiku.jwt_with_refreshtoken.service.JwtUserDetailsService;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -49,6 +50,7 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
         final UserIssueToken issueToken = userDetailsService.issueToken(username);
         final String json = (new ObjectMapper()).writeValueAsString(issueToken);
 
+        res.setContentType(MediaType.APPLICATION_JSON_VALUE);
         res.getWriter().write(json);
         res.getWriter().flush();
     }
