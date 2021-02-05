@@ -6,17 +6,17 @@ import com.github.otoiku.jwt_with_refreshtoken.dto.UserIssueToken;
 import com.github.otoiku.jwt_with_refreshtoken.service.JwtUserDetailsService;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import javax.servlet.FilterChain;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Collections;
 
 public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
     private AuthenticationManager authenticationManager;
@@ -36,19 +36,17 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
                     new UsernamePasswordAuthenticationToken(
                             user.getUserId(),
                             user.getPassword(),
-                            new ArrayList<>())
+                            Collections.emptyList())
             );
         } catch (IOException e) {
-            throw new IllegalStateException(e);
+            throw new BadCredentialsException("Invalid credentials", e);
         }
     }
 
     @Override
     protected void successfulAuthentication(HttpServletRequest req, HttpServletResponse res, FilterChain chain, Authentication auth) throws IOException {
-        final String username = ((User) auth.getPrincipal()).getUsername();
-
-        final UserIssueToken issueToken = userDetailsService.issueToken(username);
-        final String json = (new ObjectMapper()).writeValueAsString(issueToken);
+        final UserIssueToken issueToken = userDetailsService.issueToken(auth.getName());
+        final String json = new ObjectMapper().writeValueAsString(issueToken);
 
         res.setContentType(MediaType.APPLICATION_JSON_VALUE);
         res.getWriter().write(json);

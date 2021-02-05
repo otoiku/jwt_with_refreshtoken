@@ -7,6 +7,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.github.otoiku.jwt_with_refreshtoken.dto.UserIssueToken;
 import com.github.otoiku.jwt_with_refreshtoken.service.JwtUserDetailsService;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -39,7 +40,7 @@ public class Controller {
         if (userDetailsService.verifyRefreshToken(jwt.getSubject(), token.getRefreshToken())) {
             return userDetailsService.issueToken(jwt.getSubject());
         } else {
-            throw new RuntimeException("Invalid refresh token!");
+            throw new BadCredentialsException("Invalid refresh token!");
         }
     }
 }

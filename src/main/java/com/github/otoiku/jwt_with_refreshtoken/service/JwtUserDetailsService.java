@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 
 @Service
@@ -53,15 +53,18 @@ public class JwtUserDetailsService implements UserDetailsService {
         final com.github.otoiku.jwt_with_refreshtoken.model.User user = findByUsername(username);
         return User.withUsername(user.getUserId())
                         .password(user.getPassword())
-                        .authorities(new ArrayList<>())
+                        .authorities(Collections.emptyList())
                         .build();
     }
 
     @Transactional
     public UserIssueToken issueToken(String username) throws UsernameNotFoundException {
+        final Instant now = Instant.now();
+
         final String token = JWT.create()
                 .withSubject(username)
-                .withExpiresAt(Date.from(Instant.now().plus(accessTokenExpTime, ChronoUnit.SECONDS)))
+                .withIssuedAt(Date.from(now))
+                .withExpiresAt(Date.from(now.plus(accessTokenExpTime, ChronoUnit.SECONDS)))
                 .sign(Algorithm.HMAC512(accessTokenSecret.getBytes()));
 
         return UserIssueToken.builder()
